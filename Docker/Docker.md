@@ -129,7 +129,54 @@ docker build -t <image_name>:<image_version> <build_directory>
 ### Example yaml config file
 
 ```yaml
+version: '3'
+services:
 
+  webserver:
+    image: nginx
+    volumes:
+     - www-data:/usr/share/nginx/html
+    networks: 
+     - webnetwork
+    ports:
+     - "8080:80"
+
+  minecraft-1:
+    image: mcserver:1.9.2
+    stdin_open: true
+    tty: true
+    environment:
+     - MEM=2G
+    volumes:
+     - minecraft-server:/srv/minecraft/data
+    networks:
+      mcnetwork:
+       ipv4_address: "10.10.1.2"
+
+  busybox-1:
+    image: busybox
+    stdin_open: true
+    tty: true
+    networks:
+      mcnetwork:
+       ipv4_address: "10.10.1.3"
+
+networks:
+  webnetwork: {}
+  mcnetwork: 
+    driver: ipvlan
+    driver_opts:
+      parent: "wlp3s0"
+      ipvlan_mode: "l3"
+    ipam:
+      config:
+       - subnet: "10.10.1.0/24"
+
+volumes:
+  www-data:
+    driver: local
+  minecraft-server:
+    driver: local
 ```
 
 ### Command to run/stop setup
