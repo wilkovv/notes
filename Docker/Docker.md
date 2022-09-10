@@ -129,26 +129,7 @@ docker build -t <image_name>:<image_version> <build_directory>
 ### Example yaml config file
 
 ```yaml
-version: '3'
-services:
-  webserver:
-    volumes:
-     - www-data:/usr/share/nginx/html
-    networks: 
-     - webnetwork
-    image: nginx
-    ports:
-     - 8080:80
-  ubuntu-box:
-    image: ubuntusleep:0.1
-    networks:
-     - ubuntunetwork
-networks:
-  webnetwork: {}
-  ubuntunetwork: {}
-volumes:
-  www-data:
-    driver: local
+
 ```
 
 ### Command to run/stop setup
