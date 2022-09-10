@@ -5,10 +5,13 @@
 ```shell
 # Lists local images
 docker images
+
 # Pulls image from remote repo
-docker pull [<repo>:]<image_name>[:<image_version>]
+docker pull [<repo>:]<image_name>[:<image_tag>]
+
 # Remove local image
-docker rmi [<repo>:]<image_name>[:<image_version>]
+docker rmi [<repo>:]<image_name>[:<image_tag>]
+
 # Remove dangling images
 docker image prune
 ```
@@ -18,7 +21,7 @@ docker image prune
 ```shell
 docker run [-d] [-p <host_port>:<container_port>] [-i] [-t] [-v <host_mount_point>:<container_mount_point>]
 [-e <ENVIROMENT_VARIABLE>=<value>] [--name <container_name>] [--network <network_name>] 
-<image_repo>:<image_name>:<image_version> [<COMMAND>]
+<image_repo>/<image_name>:<image_tag> [<COMMAND>]
     #[-d] detached mode
     #[-p] binding container port to host port  
     #[-i] interactive mode
@@ -28,25 +31,32 @@ docker run [-d] [-p <host_port>:<container_port>] [-i] [-t] [-v <host_mount_poin
     #[--name] names container with defined value
     #[--network] create container in given network
     #[COMMAND] command to run in container
+
 docker exec [-i] [-t] <container_name> <COMMAND>
     #[-i] interactive mode
     #[-t] pseudoterminal
     #[COMMAND] command to run in container
+
 docker start <container_name>      
 docker stop <container_name>
+
 docker attach <container_name>
-    # default detach combination is Ctrl+P+Q                
+    # default detach combination is Ctrl+P+Q   
+             
 docker rm <container_name>                 
 docker inspect <container_name>
+
 docker ps [-a] [-q]
     #[-a] lists all containers (includes stopped)
     #[-q] quiet - only display container IDs
+
 docker logs <container_name>
+
 # Removing all containers
 docker ps -qa | xargs docker rm
 ```
 
-### Docker Network Types:
+### Docker Network Types
 
 - **Default bridge**
 
@@ -70,7 +80,7 @@ docker network create <network_name>
 docker network rm <network_name>
 ```
 
-### Docker Volume Types:
+### Docker Volume Types
 
 - Host Volumes
 
@@ -87,41 +97,74 @@ docker volume rm <volume_name>
 
 # Creating Docker Images
 
+### Dockerfile reference
+
+[Dockerfile reference | Docker Documentation](https://docs.docker.com/engine/reference/builder/#expose)
+
+[Best practices for writing Dockerfiles | Docker Documentation](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/)
+
+Notes from docs:
+
+- ADD allows to add remote files while COPY does not. 
+
+- CMD might be used to provide arguments to ENTRYPOINT - allows to use container as executable with parameters specified with docker run.
+
 ### Example Dockerfile
 
 ```dockerfile
 # Build image on ubuntu 22.04 as base.
 FROM ubuntu:22.04
 
-# Update ubuntu repos and install wget and java.
-RUN ["/bin/bash", "-c","apt update && apt install -y wget openjdk-17-jre-headless"]
-RUN ["/bin/bash", "-c","mkdir -p /srv/minecraft/data"]
+# Update ubuntu repos and install openjdk.
+RUN ["/bin/bash", "-c","apt update && apt install -y openjdk-17-jre-headless"]
 
-WORKDIR /srv/minecraft
-
-# Download official 1.19.2 server jar from mojang servers and setup unprivileged minecraft user.
-RUN ["wget", "https://piston-data.mojang.com/v1/objects/f69c284232d7c7580bd89a5a4931c3581eae1378/server.jar"]
+# Setup new unprivileged minecraft user with /srv/minecraft directory
 RUN ["/bin/bash", "-c","useradd -u 1000 minecraft"]
-RUN ["/bin/bash", "-c","chown -R minecraft /srv/minecraft"]
+RUN ["/bin/bash", "-c","mkdir -p /srv/minecraft/data && chown -R minecraft /srv/minecraft"]
+
+# Download official 1.19.2 server jar from mojang servers
+ADD --chown=1000 ["https://piston-data.mojang.com/v1/objects/f69c284232d7c7580bd89a5a4931c3581eae1378/server.jar","/srv/minecraft/server.jar"]
 
 # /srv/minecraft/data is mount point for volume with all the server files from host machine
 # if no volume is attached all server files will be deleted when container is stopped.
 WORKDIR /srv/minecraft/data
 
-# Accept EULA and run server.jar as minecraft user.
+# Switch to minecraft user
 USER 1000
+
+# By default use 1G of RAM
 ENV MEM=1G
+
+# Accept EULA
 RUN ["/bin/bash", "-c", "echo 'eula=true' > eula.txt"]
 
-# Redirecting stdin with cat - makes it possible to detach and reattach to minecraft console
-# with 'docker attach', however container must be run with '-it' options.
+# Start server.jar, redirecting stdin with cat - makes it possible to detach and reattach to 
+# minecraft console with 'docker attach', however container must be run with '-it' options.
+EXPOSE 25565
 CMD ["/bin/bash","-c","cat | java -Xmx$MEM -Xms$MEM -jar /srv/minecraft/server.jar nogui"]
 ```
 
 ### Building Images from Dockerfile:
 
 ```shell
+# Dockerfile name must be exactly 'Dockerfile' and be present in <build_directory>
 docker build -t <image_name>:<image_version> <build_directory>
+```
+
+### Working with registry:
+
+```shell
+# logging into registry varies by provider
+docker login [options] [server]
+
+docker search [options] <term>
+docker pull [options] <registry_Domain>/<image_name>[:<image_tag>]
+
+# tagging image for specific repo
+docker tag <source_image>[:<image_tag>] <target_image>[:<image_tag>]
+
+docker push [options] <registry_Domain>/<image_name>[:<image_tag>]
+
 ```
 
 # Docker compose
@@ -131,7 +174,7 @@ docker build -t <image_name>:<image_version> <build_directory>
 ```yaml
 version: '3'
 services:
-
+  
   webserver:
     image: nginx
     volumes:
@@ -140,7 +183,7 @@ services:
      - webnetwork
     ports:
      - "8080:80"
-
+  
   minecraft-1:
     image: mcserver:1.9.2
     stdin_open: true
