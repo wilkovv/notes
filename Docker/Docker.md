@@ -16,11 +16,9 @@ docker image prune
 ### Commands to work with containters
 
 ```shell
-docker run [-d] [-p <host_port>:<container_port>] [-i] [-t]
-[-v <host_mount_point>:<container_mount_point>]
-[-e <ENVIROMENT_VARIABLE>=<value>] [--name <container_name>]
-[--network <network_name>] <image_repo>:<image_name>:<image_version> 
-[<COMMAND>]
+docker run [-d] [-p <host_port>:<container_port>] [-i] [-t] [-v <host_mount_point>:<container_mount_point>]
+[-e <ENVIROMENT_VARIABLE>=<value>] [--name <container_name>] [--network <network_name>] 
+<image_repo>:<image_name>:<image_version> [<COMMAND>]
     #[-d] detached mode
     #[-p] binding container port to host port  
     #[-i] interactive mode
